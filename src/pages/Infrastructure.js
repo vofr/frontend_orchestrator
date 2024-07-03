@@ -2,15 +2,22 @@ import './index.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactFlow, { useNodesState, useEdgesState, addEdge, MiniMap, Controls, applyNodeChanges  } from 'reactflow';
 import 'reactflow/dist/style.css';
-import ServiceNode from './ServiceNode';
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
+import ChevronRightIcon from'@mui/icons-material/ChevronRight';
+import ChevronLeftIcon from'@mui/icons-material/ChevronLeft';
+
+import ServiceNode from '../components/ServiceNode';
 import{
     fetchInfrastructureDetails
 } from  '../services/api/api';
-import WebSocketComponent from './WebSocketComponent';
+import WebSocketComponent from '../components/WebSocketComponent';
+import ApplicationDrawer from '../components/ApplicationDrawer';
 
-const NODE_COLOR = "#faf5f5";
+const NODE_COLOR = "#F7F7F7";
 const bgColor = "#faf5f5";
 const connectionLineStyle = { stroke: '#fff' };
+const drawerWidth = 500;
 
 const snapGrid = [20, 20];
 const nodeTypes = {
@@ -22,17 +29,23 @@ const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 const Infrastructure = () => {
   const [nodes, setNodes] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [applications, setApplications] = useState([]); // State for applications in the drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
 
   const onNodesChange = useCallback((changes) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, []);
 
+  const handleDrawerClicked = () => {
+    setDrawerOpen(!drawerOpen);
+  };
+
   useEffect(() => {
-    console.log("INIT INFRASTRUCTURE")
+    setApplications(["App 1", "App 2", "App 3"]);
     const fetchData = async () => {
       try {
         const result = await fetchInfrastructureDetails();
-        console.log("Fetched data:", result);
         transformResponseToNodesAndEdges(result);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -42,16 +55,7 @@ const Infrastructure = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    console.log("NODES RIGHT NOW ARE: ", nodes)
-  }, [nodes]);
-
-  useEffect(() => {
-    console.log("EDGES RIGHT NOW ARE: ", edges)
-  }, [edges]);
-
   const transformResponseToNodesAndEdges = (data) => {
-    console.log('data\n' + data.data)
     if (!data) {
         console.log('Data is null or undefined');
         return [];
@@ -67,7 +71,7 @@ const Infrastructure = () => {
       data: {
         color: NODE_COLOR,
         label: `${data.ipAddress}(FOG)`,
-        services: [], // Add services if they exist in the response
+        services: data.currentTasks, // Add services if they exist in the response
         hardware: fogHardwareMeasurements ? {
           cpuUsage: data.serverMeasurement[0].hardwareMeasurements.cpuUsage,
           nrOfCores: data.serverMeasurement[0].hardwareMeasurements.numberOfProcessors,
@@ -77,17 +81,14 @@ const Infrastructure = () => {
       },
       position: { x: 300, y: 0 },
     };
-
-    console.log("fog: " , fogNode)
   
-    // Edge nodes transformation
     const edgeNodes = (data.currentEdgeNodesDTO || []).map((edgeNode, index) => ({
       id: edgeNode.id.toString(),
       type: 'serviceNode',
       data: {
         color: NODE_COLOR,
         label: `${edgeNode.ipAddress}(EDGE)`,
-        services: [], // Add services if they exist in the response
+        services: edgeNode.currentTasks, // Add services if they exist in the response
         hardware: {
           cpuUsage: edgeNode.serverMeasurement[0].hardwareMeasurements.cpuUsage,
           nrOfCores: edgeNode.serverMeasurement[0].hardwareMeasurements.numberOfProcessors,
@@ -146,7 +147,7 @@ const Infrastructure = () => {
     setEdges((prevEdges) => [...prevEdges, newEdge]);
   }, []);
 
-  const handleNotification = useCallback((notification) => {
+  const handleInfrastructureNotification = useCallback((notification) => {
     console.log("new notification action: ", notification.action);
     if (!notification) {
       return;
@@ -220,8 +221,44 @@ const Infrastructure = () => {
     }
   }, [addNewEdge]);
 
+  const handleSelectApplication = (app) => {
+    console.log("Selected application:", app);
+    if(selectedApplication == app){
+      setSelectedApplication("QQQQQ");
+    }else{
+      setSelectedApplication(app);
+    }
+  };
+
+  useEffect(() => {
+    console.log("from selected application value: ", selectedApplication);
+    setNodes(prevNodes => updateNodesColor(prevNodes, selectedApplication));
+  }, [selectedApplication]);
+
+  const updateNodesColor = (nodes, selectedApplication) => {
+    return nodes.map(node => {
+      const services = node.data.services || [];
+      const isMatchingNode = services.some(service => service.appName === selectedApplication);
+      
+      const updatedServices = services.map(service => ({
+        ...service,
+        color: service.appName === selectedApplication ? '#2673AF' : '#fff',
+        textColor: service.appName === selectedApplication ? 'white' : "#000"
+      }));
+  
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          color: isMatchingNode ? '#E3F1FC' : NODE_COLOR,
+          services: updatedServices
+        }
+      };
+    });
+  };
+
   return (
-    <div style={{ height: 1100 }}>
+    <div style={{ height: 1300 }}>
         <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -236,22 +273,31 @@ const Infrastructure = () => {
         fitView
         attributionPosition="bottom-left"
         >
-        <MiniMap
-            nodeStrokeColor={(n) => {
-            if (n.type === 'input') return '#0041d0';
-            if (n.type === 'selectorNode') return bgColor;
-            if (n.type === 'output') return '#ff0072';
-            }}
-            nodeColor={(n) => {
-            if (n.type === 'selectorNode') return bgColor;
-            return '#fff';
-            }}
-        />
         <Controls />
         </ReactFlow>
        <WebSocketComponent
-        handleNotification={handleNotification}
+        handleNotification={handleInfrastructureNotification}
        />
+
+             {/* Application Drawer */}
+      <ApplicationDrawer
+        drawerWidth={drawerWidth}
+        applications={applications}
+        isOpen={drawerOpen}
+        onSelectApplication={handleSelectApplication}
+      />
+
+      <div style={{ position: 'absolute', top: '50%', right: drawerOpen ? `${drawerWidth}px` : '0', transform: 'translateY(-50%)' }}>
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerClicked}
+          sx={{ ml: 2 }}
+        >
+          {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        </IconButton>
+      </div>
     </div>
   );
 };

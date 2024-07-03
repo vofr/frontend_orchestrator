@@ -17,11 +17,11 @@ const ServiceNode = ({ data }) => {
                       border: '1px solid #333',
                       padding: 5,
                       margin: '5px 0',
-                      background: '#fff',
+                      background: service.color || '#fff',
                     }}
                   >
-                    <div><strong>service:</strong> {service.name}</div>
-                    <div><strong>Application:</strong> {service.appName}</div>
+                     <div style={{ color: service.textColor || '#000' }}><strong>Service:</strong> {service.name}</div>
+                     <div style={{ color: service.textColor || '#000' }}><strong>Application:</strong> {service.appName}</div>
                   </div>
                 ))}
               </div>

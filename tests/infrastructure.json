@@ -1,13 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import {
-    BASE_API_URL,
-    CONTROLLER,
-    FOG_IP,
-    INFRASTRUCTURE
-} from './urls'
-
-const infra = {
+{
     "id": 1,
     "ipAddress": "192.168.1.183",
     "serverMeasurement": [
@@ -58,8 +49,7 @@ const infra = {
             "timestamp": 1719967153070
           }
         ],
-        "currentTasks": [
-            { "name": "Service 1", "appName": "App 1" }],
+        "currentTasks": [],
         "pastTasks": [],
         "joinStartTimestamp": 1719966894340,
         "joinEndTimestamp": -1
@@ -89,6 +79,7 @@ const infra = {
           }
         ],
         "currentTasks":     [
+            { "name": "Service 1", "appName": "App 1" },
             { "name": "Service 2", "appName": "App 1" },
             { "name": "Service 3", "appName": "App 2" },
             { "name": "Service 4", "appName": "App 3" }
@@ -102,14 +93,3 @@ const infra = {
     "joinStartTimestamp": 0,
     "joinEndTimestamp": 0
   }
-
-export const fetchInfrastructureDetails = async () => {
-    try {
-        //const response = await axios.get(`${BASE_API_URL}${CONTROLLER}${INFRASTRUCTURE}`);
-        //return response.data;
-        const response = infra;
-        return response;
-    } catch (error) {
-        throw new Error(`Failed to fetch infrastructure details: ${error.message}`);
-    }
-};

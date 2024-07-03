@@ -56,8 +56,6 @@ class WebSocketComponent extends Component {
   render() {
     return (
       <div>
-        <h1>WebSocket Subscription</h1>
-        <p>Check console for WebSocket messages</p>
       </div>
     );
   }
